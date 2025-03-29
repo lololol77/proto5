@@ -22,10 +22,17 @@ disability_degree = st.radio("장애정도 선택", ["심하지 않은", "심한
 required_skills = st.multiselect("구인자가 요구하는 능력", ["주의력", "기억력", "공간지각력", "아이디어 발상", "지각능력"])
 
 # 매칭 테이블에서 해당 장애유형에 맞는 능력 상태 불러오기
-cursor.execute("""
-    SELECT ability_id, disability_id, suitability FROM matching WHERE disability_id = ?
-""", (disability_type,))
-matching_data = cursor.fetchall()
+try:
+    cursor.execute("""
+        SELECT * FROM matching WHERE disability_id = ?
+    """, (disability_type,))
+    matching_data = cursor.fetchall()
+    
+    if not matching_data:
+        st.write("해당 장애유형에 대한 매칭 데이터가 없습니다.")
+    
+except sqlite3.Error as e:
+    st.write(f"쿼리 실행 중 오류 발생: {e}")
 
 # 점수 계산 함수
 def calculate_score(skills, matching_data):
@@ -51,12 +58,18 @@ else:
     st.write(f"추천 일자리 점수: {job_score}점")
 
 # 예시로 일부 일자리 리스트를 작성 (DB에서 불러오는 일자리 목록을 예시로 사용)
-cursor.execute("""
-    SELECT job_title, required_skills FROM jobs
-    WHERE disability_id = ? AND disability_degree = ?
-""", (disability_type, disability_degree))
-
-jobs = cursor.fetchall()
+try:
+    cursor.execute("""
+        SELECT job_title, required_skills FROM jobs
+        WHERE disability_id = ? AND disability_degree = ?
+    """, (disability_type, disability_degree))
+    
+    jobs = cursor.fetchall()
+    if not jobs:
+        st.write("해당 장애유형 및 장애정도에 맞는 일자리가 없습니다.")
+    
+except sqlite3.Error as e:
+    st.write(f"쿼리 실행 중 오류 발생: {e}")
 
 # 점수 높은 순으로 일자리 정렬
 job_scores = {}
