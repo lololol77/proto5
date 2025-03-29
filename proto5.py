@@ -32,7 +32,6 @@ def save_job_seeker(name, disability, severity):
 # 점수 계산 함수 (동그라미: 2점, 세모: 1점, 엑스: 부적합)
 def calculate_score(abilities, disability_type):
     score = 0
-    # matching 데이터베이스에서 장애유형과 능력에 맞는 점수 계산
     conn = connect_db()
     cur = conn.cursor()
     cur.execute("SELECT ability_id, disability_id, suitability FROM matching WHERE disability_id=?", (disability_type,))
@@ -41,12 +40,12 @@ def calculate_score(abilities, disability_type):
     for ability in abilities:
         for entry in matching_data:
             if entry[0] == ability:  # 능력명 일치
-                if entry[2] == '○':
-                    score += 2  # 동그라미: 2점
-                elif entry[2] == '△':
-                    score += 1  # 세모: 1점
-                elif entry[2] == 'X':
-                    return "부적합"  # 엑스: 부적합
+                if entry[2] == '○':  # 동그라미: 2점
+                    score += 2
+                elif entry[2] == '△':  # 세모: 1점
+                    score += 1
+                elif entry[2] == 'X':  # 엑스: 부적합
+                    return "부적합"  # 하나라도 'X'가 있으면 부적합 처리
     return score
 
 # Streamlit UI
@@ -66,6 +65,7 @@ if role == "구직자":
         jobs = cur.fetchall()
         st.write("### 적합한 일자리 목록:")
         
+        # 점수 계산하고 부적합한 일자리는 제외
         for job in jobs:
             abilities = job[1].split(", ")
             score = calculate_score(abilities, disability)  # 점수 계산
