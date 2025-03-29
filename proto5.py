@@ -1,15 +1,12 @@
 import sqlite3
 import streamlit as st
 
-# DB 파일 경로 수정
-db_path = 'job_matching_fixed.db'  # 파일이 있는 디렉토리로 경로 설정
-
 # DB 연결
-conn = sqlite3.connect(db_path)
+conn = sqlite3.connect('/mnt/data/job_matching_fixed.db')
 cursor = conn.cursor()
 
 # 장애유형 데이터를 불러오기
-cursor.execute("SELECT DISTINCT name FROM disabilities")
+cursor.execute("SELECT DISTINCT disability_id FROM disabilities")
 disabilities = cursor.fetchall()
 
 # 구직자 장애유형 선택
@@ -23,7 +20,7 @@ required_skills = st.multiselect("구인자가 요구하는 능력", ["주의력
 
 # 매칭 테이블에서 해당 장애유형에 맞는 능력 상태 불러오기
 cursor.execute("""
-    SELECT * FROM matching WHERE disability_type = ?
+    SELECT ability_id, disability_id, suitability FROM matching WHERE disability_id = ?
 """, (disability_type,))
 matching_data = cursor.fetchall()
 
@@ -53,7 +50,7 @@ else:
 # 예시로 일부 일자리 리스트를 작성 (DB에서 불러오는 일자리 목록을 예시로 사용)
 cursor.execute("""
     SELECT job_title, required_skills FROM jobs
-    WHERE disability_type = ? AND disability_degree = ?
+    WHERE disability_id = ? AND disability_degree = ?
 """, (disability_type, disability_degree))
 
 jobs = cursor.fetchall()
@@ -84,8 +81,3 @@ if st.button("대화 종료"):
         st.write("서비스를 이용해 주셔서 감사합니다!")
     else:
         st.write("대화를 종료합니다.")
-
-
-
-
-
