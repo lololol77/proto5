@@ -1,11 +1,8 @@
 import sqlite3
 import streamlit as st
 
-# DB 파일 경로 수정
-db_path = 'job_matching_fixed.db'  # 파일이 있는 디렉토리로 경로 설정
-
 # DB 연결
-conn = sqlite3.connect(db_path)
+conn = sqlite3.connect('/mnt/data/job_matching_fixed.db')
 cursor = conn.cursor()
 
 # 장애유형 데이터를 불러오기
@@ -22,17 +19,10 @@ disability_degree = st.radio("장애정도 선택", ["심하지 않은", "심한
 required_skills = st.multiselect("구인자가 요구하는 능력", ["주의력", "기억력", "공간지각력", "아이디어 발상", "지각능력"])
 
 # 매칭 테이블에서 해당 장애유형에 맞는 능력 상태 불러오기
-try:
-    cursor.execute("""
-        SELECT * FROM matching WHERE disability_id = ?
-    """, (disability_type,))
-    matching_data = cursor.fetchall()
-    
-    if not matching_data:
-        st.write("해당 장애유형에 대한 매칭 데이터가 없습니다.")
-    
-except sqlite3.Error as e:
-    st.write(f"쿼리 실행 중 오류 발생: {e}")
+cursor.execute("""
+    SELECT * FROM matching WHERE disability_id = ?
+""", (disability_type,))
+matching_data = cursor.fetchall()
 
 # 점수 계산 함수
 def calculate_score(skills, matching_data):
@@ -40,11 +30,11 @@ def calculate_score(skills, matching_data):
     for skill in skills:
         for entry in matching_data:
             if entry[1] == skill:  # 능력명 일치
-                if entry[2] == '○':  # 동그라미: 2점
+                if entry[3] == '○':  # 동그라미: 2점
                     score += 2
-                elif entry[2] == '△':  # 세모: 1점
+                elif entry[3] == '△':  # 세모: 1점
                     score += 1
-                elif entry[2] == 'X':  # 엑스: 부적합
+                elif entry[3] == 'X':  # 엑스: 부적합
                     return "부적합"
     return score
 
@@ -58,36 +48,26 @@ else:
     st.write(f"추천 일자리 점수: {job_score}점")
 
 # 예시로 일부 일자리 리스트를 작성 (DB에서 불러오는 일자리 목록을 예시로 사용)
-try:
-    cursor.execute("""
-        SELECT job_title, required_skills FROM jobs
-        WHERE disability_id = ? AND disability_degree = ?
-    """, (disability_type, disability_degree))
-    
-    jobs = cursor.fetchall()
-    
-    if not jobs:
-        st.write("해당 장애유형 및 장애정도에 맞는 일자리가 없습니다.")
-    
-except sqlite3.Error as e:
-    st.write(f"쿼리 실행 중 오류 발생: {e}")
+cursor.execute("""
+    SELECT job_title, required_skills FROM jobs
+    WHERE disability_id = ? AND disability_degree = ?
+""", (disability_type, disability_degree))
+
+jobs = cursor.fetchall()
 
 # 점수 높은 순으로 일자리 정렬
 job_scores = {}
-if jobs:  # jobs가 비어있지 않으면
-    for job in jobs:
-        job_skills = job[1].split(", ")
-        score = calculate_score(required_skills, matching_data)
-        job_scores[job[0]] = score
+for job in jobs:
+    job_skills = job[1].split(", ")
+    score = calculate_score(required_skills, matching_data)
+    job_scores[job[0]] = score
 
-    # 적합도 순으로 정렬된 일자리 목록
-    sorted_jobs = sorted(job_scores.items(), key=lambda x: x[1], reverse=True)
+# 적합도 순으로 정렬된 일자리 목록
+sorted_jobs = sorted(job_scores.items(), key=lambda x: x[1], reverse=True)
 
-    st.write("추천 일자리:")
-    for idx, job in enumerate(sorted_jobs, start=1):
-        st.write(f"{idx}. {job[0]}: {job[1]}점")
-else:
-    st.write("추천할 수 있는 일자리가 없습니다.")
+st.write("추천 일자리:")
+for idx, job in enumerate(sorted_jobs, start=1):
+    st.write(f"{idx}. {job[0]}: {job[1]}점")
 
 # 유료 서비스 여부 확인 (구직자/구인자)
 if st.button("대화 종료"):
