@@ -1,78 +1,74 @@
-# Streamlit 기반 장애인 일자리 매칭 시스템 (수정)
-import streamlit as st
 import sqlite3
+import streamlit as st
 
-# DB 연결 함수
-def connect_db():
-    conn = sqlite3.connect("job_matching_fixed.db")
-    return conn
+# DB 연결
+conn = sqlite3.connect('/mnt/data/job_matching_fixed.db')
+cursor = conn.cursor()
 
-# 구인자/구직자 입력 내역 별도 DB 연결
-def connect_user_db():
-    conn = sqlite3.connect("user_data.db")
-    return conn
+# 장애유형 데이터를 불러오기
+cursor.execute("SELECT DISTINCT name FROM disabilities")
+disabilities = cursor.fetchall()
 
-# 구인자 입력 내역 저장 함수 (일자리)
-def save_job_posting(job_title, abilities):
-    conn = connect_user_db()
-    cur = conn.cursor()
-    cur.execute("CREATE TABLE IF NOT EXISTS job_postings (id INTEGER PRIMARY KEY, title TEXT, abilities TEXT)")
-    cur.execute("INSERT INTO job_postings (title, abilities) VALUES (?, ?)", (job_title, ", ".join(abilities)))
-    conn.commit()
-    conn.close()
+# 구직자 장애유형 선택
+disability_type = st.selectbox("장애유형 선택", [disability[0] for disability in disabilities])
 
-# 구직자 입력 내역 저장 함수 (프로필)
-def save_job_seeker(name, disability, severity):
-    conn = connect_user_db()
-    cur = conn.cursor()
-    cur.execute("CREATE TABLE IF NOT EXISTS job_seekers (id INTEGER PRIMARY KEY, name TEXT, disability TEXT, severity TEXT)")
-    cur.execute("INSERT INTO job_seekers (name, disability, severity) VALUES (?, ?, ?)", (name, disability, severity))
-    conn.commit()
-    conn.close()
+# 구직자 장애정도 선택
+disability_degree = st.radio("장애정도 선택", ["심하지 않은", "심한"])
 
-# Streamlit UI
-st.title("장애인 일자리 매칭 시스템")
+# 해당 장애유형과 정도에 맞는 일자리 정보 불러오기
+cursor.execute("""
+    SELECT job_title, required_skills FROM jobs 
+    WHERE disability_type = ? 
+    AND disability_degree = ?
+""", (disability_type, disability_degree))
 
-role = st.selectbox("사용자 역할 선택", ["구직자", "구인자"])
+jobs = cursor.fetchall()
 
-if role == "구직자":
-    name = st.text_input("이름 입력")
-    disability = st.selectbox("장애유형", ["시각장애", "청각장애", "지체장애", "뇌병변장애", "언어장애", "안면장애", "신장장애", "심장장애", "간장애", "호흡기장애", "장루·요루장애", "뇌전증장애", "지적장애", "자폐성장애", "정신장애"])
-    severity = st.selectbox("장애 정도", ["심하지 않은", "심한"])
-    if st.button("매칭 결과 보기"):
-        save_job_seeker(name, disability, severity)
-        conn = connect_user_db()
-        cur = conn.cursor()
-        cur.execute("SELECT title, abilities FROM job_postings")
-        jobs = cur.fetchall()
-        st.write("### 적합한 일자리 목록:")
-        for job in jobs:
-            required_abilities = job[1].split(", ")
-            # 적합도 확인 로직 수정
-            if any(ability in required_abilities for ability in ["주의력", "아이디어 발상 및 논리적 사고", "기억력", "지각능력", "수리능력", "공간능력", "언어능력", "지구력", "유연성 · 균형 및 조정", "체력", "움직임 통제능력", "정밀한 조작능력", "반응시간 및 속도", "청각 및 언어능력", "시각능력"]):
-                st.write(f"- {job[0]}: 적합")
-            else:
-                st.write(f"- {job[0]}: 적합하지 않음")
-        conn.close()
+# 장애유형 점수 계산 함수
+def calculate_score(abilities):
+    score = 0
+    for ability in abilities:
+        if ability == '○':  # 동그라미: 2점
+            score += 2
+        elif ability == '△':  # 세모: 1점
+            score += 1
+    return score
 
-elif role == "구인자":
-    job_title = st.text_input("일자리 제목 입력")
-    abilities = st.multiselect("필요한 능력 선택", ["주의력", "아이디어 발상 및 논리적 사고", "기억력", "지각능력", "수리능력", "공간능력", "언어능력", "지구력", "유연성 · 균형 및 조정", "체력", "움직임 통제능력", "정밀한 조작능력", "반응시간 및 속도", "청각 및 언어능력", "시각능력"])
-    if st.button("매칭 결과 보기"):
-        save_job_posting(job_title, abilities)
-        st.success("구인자 정보가 저장되었습니다!")
-        st.write("일자리 제목:", job_title)
-        st.write("필요 능력:", ", ".join(abilities))
+# 구직자 장애유형과 일자리 능력 매칭 점수 계산
+job_scores = {job[0]: calculate_score(job[1].split(", ")) for job in jobs}
 
-# 유료 서비스 여부 확인
+# 구직자에게 적합한 일자리 표시
+sorted_jobs = sorted(job_scores.items(), key=lambda x: x[1], reverse=True)
+
+st.write(f"추천 일자리 ({disability_type}, {disability_degree}):")
+st.write(sorted_jobs)
+
+# 구인자의 능력 요구 사항을 기반으로 구직자 매칭하기
+required_skills = st.multiselect("필요한 능력 선택", ["주의력", "기억력", "아이디어 발상", "지각능력", "수리능력"])
+
+# 구인자가 요구한 능력 기반으로 구직자 매칭
+cursor.execute("""
+    SELECT disability_type, disability_degree FROM disabilities
+    WHERE skills_required LIKE ?
+""", (f"%{required_skills}%",))  # 예시로 필요한 능력 기반 조회
+
+candidates = cursor.fetchall()
+
+# 구인자에게 적합한 구직자 표시
+st.write(f"추천 구직자:")
+st.write(candidates)
+
+# 유료 서비스 여부 확인 (구직자/구인자)
 if st.button("대화 종료"):
     if role == "구직자":
         use_service = st.radio("유료 취업준비 서비스 이용하시겠습니까?", ["네", "아니요"])
     else:
         use_service = st.radio("유료 직무개발 서비스 이용하시겠습니까?", ["네", "아니요"])
+    
     if use_service == "네":
         st.write("서비스를 이용해 주셔서 감사합니다!")
     else:
         st.write("대화를 종료합니다.")
+
 
 
