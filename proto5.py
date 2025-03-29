@@ -2,7 +2,7 @@ import sqlite3
 import streamlit as st
 
 # DB 연결
-conn = sqlite3.connect('/mnt/data/job_matching_fixed.db')
+conn = sqlite3.connect('data/job_matching_fixed.db')
 cursor = conn.cursor()
 
 # 장애유형 데이터를 불러오기
