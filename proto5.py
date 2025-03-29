@@ -49,7 +49,7 @@ if role == "구직자":
         for job in jobs:
             required_abilities = job[1].split(", ")
             # 적합도 확인 로직 수정
-            if any(disability in ability for ability in required_abilities):
+            if any(ability in required_abilities for ability in ["주의력", "아이디어 발상 및 논리적 사고", "기억력", "지각능력", "수리능력", "공간능력", "언어능력", "지구력", "유연성 · 균형 및 조정", "체력", "움직임 통제능력", "정밀한 조작능력", "반응시간 및 속도", "청각 및 언어능력", "시각능력"]):
                 st.write(f"- {job[0]}: 적합")
             else:
                 st.write(f"- {job[0]}: 적합하지 않음")
@@ -62,7 +62,7 @@ elif role == "구인자":
         save_job_posting(job_title, abilities)
         st.success("구인자 정보가 저장되었습니다!")
         st.write("일자리 제목:", job_title)
-        st.write("필요 능력:", abilities)
+        st.write("필요 능력:", ", ".join(abilities))
 
 # 유료 서비스 여부 확인
 if st.button("대화 종료"):
