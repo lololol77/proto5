@@ -1,12 +1,15 @@
 import sqlite3
 import streamlit as st
 
+# DB 파일 경로 수정
+db_path = 'job_matching_fixed.db'  # 파일이 있는 디렉토리로 경로 설정
+
 # DB 연결
-conn = sqlite3.connect('/mnt/data/job_matching_fixed.db')
+conn = sqlite3.connect(db_path)
 cursor = conn.cursor()
 
 # 장애유형 데이터를 불러오기
-cursor.execute("SELECT DISTINCT disability_id FROM disabilities")
+cursor.execute("SELECT DISTINCT name FROM disabilities")
 disabilities = cursor.fetchall()
 
 # 구직자 장애유형 선택
