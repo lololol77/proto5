@@ -12,7 +12,6 @@ cursor = conn.cursor()
 cursor.execute("SELECT DISTINCT name FROM disabilities")
 disabilities = cursor.fetchall()
 
-
 # 구직자 장애유형 선택
 disability_type = st.selectbox("장애유형 선택", [disability[0] for disability in disabilities])
 
@@ -85,5 +84,8 @@ if st.button("대화 종료"):
         st.write("서비스를 이용해 주셔서 감사합니다!")
     else:
         st.write("대화를 종료합니다.")
+
+
+
 
 
