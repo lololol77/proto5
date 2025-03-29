@@ -69,4 +69,9 @@ if st.button("대화 종료"):
         use_service = st.radio("유료 취업준비 서비스 이용하시겠습니까?", ["네", "아니요"])
     else:
         use_service = st.radio("유료 직무개발 서비스 이용하시겠습니까?", ["네", "아니요"])
-    if use_service == "네":
+        
+        if use_service == "네":
+            st.write("서비스를 이용해 주셔서 감사합니다!")
+        else:
+            st.write("대화를 종료합니다.")
+
