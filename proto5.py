@@ -9,7 +9,7 @@ conn = sqlite3.connect(db_path)
 cursor = conn.cursor()
 
 # 장애유형 데이터를 불러오기
-cursor.execute("SELECT DISTINCT name FROM disabilities")
+cursor.execute("SELECT DISTINCT disability_id FROM disabilities")
 disabilities = cursor.fetchall()
 
 # 구직자 장애유형 선택
@@ -65,6 +65,7 @@ try:
     """, (disability_type, disability_degree))
     
     jobs = cursor.fetchall()
+    
     if not jobs:
         st.write("해당 장애유형 및 장애정도에 맞는 일자리가 없습니다.")
     
@@ -73,17 +74,20 @@ except sqlite3.Error as e:
 
 # 점수 높은 순으로 일자리 정렬
 job_scores = {}
-for job in jobs:
-    job_skills = job[1].split(", ")
-    score = calculate_score(required_skills, matching_data)
-    job_scores[job[0]] = score
+if jobs:  # jobs가 비어있지 않으면
+    for job in jobs:
+        job_skills = job[1].split(", ")
+        score = calculate_score(required_skills, matching_data)
+        job_scores[job[0]] = score
 
-# 적합도 순으로 정렬된 일자리 목록
-sorted_jobs = sorted(job_scores.items(), key=lambda x: x[1], reverse=True)
+    # 적합도 순으로 정렬된 일자리 목록
+    sorted_jobs = sorted(job_scores.items(), key=lambda x: x[1], reverse=True)
 
-st.write("추천 일자리:")
-for idx, job in enumerate(sorted_jobs, start=1):
-    st.write(f"{idx}. {job[0]}: {job[1]}점")
+    st.write("추천 일자리:")
+    for idx, job in enumerate(sorted_jobs, start=1):
+        st.write(f"{idx}. {job[0]}: {job[1]}점")
+else:
+    st.write("추천할 수 있는 일자리가 없습니다.")
 
 # 유료 서비스 여부 확인 (구직자/구인자)
 if st.button("대화 종료"):
