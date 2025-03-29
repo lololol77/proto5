@@ -47,8 +47,9 @@ if role == "구직자":
         jobs = cur.fetchall()
         st.write("### 적합한 일자리 목록:")
         for job in jobs:
-            # 적합도 확인
-            if disability in job[1]:
+            required_abilities = job[1].split(", ")
+            # 적합도 확인 로직 수정
+            if any(disability in ability for ability in required_abilities):
                 st.write(f"- {job[0]}: 적합")
             else:
                 st.write(f"- {job[0]}: 적합하지 않음")
@@ -69,9 +70,9 @@ if st.button("대화 종료"):
         use_service = st.radio("유료 취업준비 서비스 이용하시겠습니까?", ["네", "아니요"])
     else:
         use_service = st.radio("유료 직무개발 서비스 이용하시겠습니까?", ["네", "아니요"])
-        
-        if use_service == "네":
-            st.write("서비스를 이용해 주셔서 감사합니다!")
-        else:
-            st.write("대화를 종료합니다.")
+    if use_service == "네":
+        st.write("서비스를 이용해 주셔서 감사합니다!")
+    else:
+        st.write("대화를 종료합니다.")
+
 
